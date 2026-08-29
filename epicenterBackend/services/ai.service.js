@@ -14,7 +14,7 @@ export const analyzeImage = async(imageUrl,incidentType)=>{
 
         try{
             const controller = new AbortController();
-            const timeout = setTimeout(()=>controller.abort(),15000);
+            const timeout = setTimeout(()=>controller.abort(),60000);
 
             const response = await fetch(`${AI_SERVICE_URL}/detect`,{
                 method:"POST",
@@ -69,7 +69,7 @@ export const analyzeText = async(description,incidentType)=>{
 
     try{
         const controller = new AbortController();
-        const timeout = setTimeout(()=>controller.abort(),15000);
+        const timeout = setTimeout(()=>controller.abort(),60000);
 
             
         const response = await fetch(`${AI_SERVICE_URL}/classify-text`,{
