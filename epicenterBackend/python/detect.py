@@ -6,14 +6,25 @@ from utils import format_detection_result
 
 GENERAL_MODEL_PATH = "yolov8n.pt"
 DISASTER_MODEL_PATH = "disaster_custom.pt"
-
-#This is the minimum confidence value beyond this value it consider the YOLO AI
 DISASTER_MIN_CONFIDENCE = 0.25
 
 
-general_model = YOLO(GENERAL_MODEL_PATH)
+_general_model = None
+_disaster_model = None
 
-disaster_model = YOLO(DISASTER_MODEL_PATH)
+
+def _get_general_model():
+    global _general_model
+    if _general_model is None:
+        _general_model = YOLO(GENERAL_MODEL_PATH)
+    return _general_model
+
+
+def _get_disaster_model():
+    global _disaster_model
+    if _disaster_model is None:
+        _disaster_model = YOLO(DISASTER_MODEL_PATH)
+    return _disaster_model
 
 
 def run_detection(image_bytes):
@@ -22,12 +33,12 @@ def run_detection(image_bytes):
     except Exception as e:
         raise ValueError(f"Could not decode image: {e}")
 
-    disaster_class, disaster_confidence = _best_prediction(disaster_model, image)
+    disaster_class, disaster_confidence = _best_prediction(_get_disaster_model(), image)
 
     if disaster_class is not None and disaster_confidence >= DISASTER_MIN_CONFIDENCE:
         return format_detection_result(disaster_class, disaster_confidence, source="disaster")
 
-    general_class, general_confidence = _best_prediction(general_model, image)
+    general_class, general_confidence = _best_prediction(_get_general_model(), image)
 
     if general_class is None:
         return format_detection_result(None, None)
