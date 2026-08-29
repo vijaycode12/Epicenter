@@ -15,6 +15,7 @@ import arcjetMiddleware from './middlewares/arcjet.middleware.js';
 const app = express();
 
 const allowedOrigins = [
+    'https://epicenter-beryl.vercel.app',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:4000',
