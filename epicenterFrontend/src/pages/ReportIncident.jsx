@@ -3,6 +3,7 @@ import Header from '../components/Header.jsx'
 import { apiRequest } from '../lib/api.js'
 import { getCitizenAuth, setCitizenAuth } from '../lib/citizenAuth.js'
 
+/* ---------- Inline icons (stroke-based, replace emoji placeholders) ---------- */
 
 const Icon = ({ path, className = 'w-5 h-5' }) => (
   <svg
@@ -149,6 +150,25 @@ const STATUS_STEPS = [
   { key: 'assigned', label: 'Team Assigned' },
 ]
 
+const SUBMITTED_STORAGE_KEY = 'epicenter_submitted_report'
+
+// Only the post-submit tracker state is ever persisted here - never the
+// in-progress form fields (incident type, description, image, etc.),
+// since silently resuming into a half-filled form with a lost photo
+// would be more confusing than just landing on a blank one. This is
+// what lets a reload on the "Report Submitted" screen stay on that
+// screen instead of bouncing to Home, without changing the earlier,
+// deliberate decision to exclude the blank form itself from resuming.
+function loadSubmittedState() {
+  try {
+    const raw = window.sessionStorage.getItem(SUBMITTED_STORAGE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
 export default function ReportIncident({ onNavigate }) {
   const [selectedType, setSelectedType] = useState(null)
   const [photo, setPhoto] = useState(null)
@@ -161,15 +181,15 @@ export default function ReportIncident({ onNavigate }) {
   const [locating, setLocating] = useState(false)
   const [locationError, setLocationError] = useState('')
   const [errors, setErrors] = useState({})
-  const [submitted, setSubmitted] = useState(false)
-  const [submittedIncidentId, setSubmittedIncidentId] = useState('')
+  const [submitted, setSubmitted] = useState(() => Boolean(loadSubmittedState()))
+  const [submittedIncidentId, setSubmittedIncidentId] = useState(() => loadSubmittedState()?.submittedIncidentId || '')
   const [followUpPhone, setFollowUpPhone] = useState('')
   const [followUpSubmitting, setFollowUpSubmitting] = useState(false)
   const [followUpError, setFollowUpError] = useState('')
   const [followUpDone, setFollowUpDone] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const [referenceId, setReferenceId] = useState('')
+  const [referenceId, setReferenceId] = useState(() => loadSubmittedState()?.referenceId || '')
   const [statusIndex, setStatusIndex] = useState(0)
   const [latestStatus, setLatestStatus] = useState('Pending')
   const fileInputRef = useRef(null)
@@ -391,6 +411,16 @@ export default function ReportIncident({ onNavigate }) {
       setReferenceId(res.data.incident._id.slice(-6).toUpperCase())
       setSubmittedIncidentId(res.data.incident._id)
       setSubmitted(true)
+      try {
+        window.sessionStorage.setItem(SUBMITTED_STORAGE_KEY, JSON.stringify({
+          submittedIncidentId: res.data.incident._id,
+          referenceId: res.data.incident._id.slice(-6).toUpperCase(),
+        }))
+      } catch {
+        // sessionStorage can throw in some privacy modes - tracker
+        // still works in-memory for this session even if persistence
+        // silently fails, it just won't survive a reload
+      }
     } catch (err) {
       setSubmitError(err.message)
     } finally {
@@ -547,7 +577,14 @@ export default function ReportIncident({ onNavigate }) {
             )}
 
             <button
-              onClick={() => onNavigate?.('home')}
+              onClick={() => {
+                try {
+                  window.sessionStorage.removeItem(SUBMITTED_STORAGE_KEY)
+                } catch {
+                  // ignore - worst case a stale tracker could resume once more
+                }
+                onNavigate?.('home')
+              }}
               className="mt-6 w-full rounded-xl bg-brand-red hover:bg-brand-red-dark text-white font-bold py-3.5 transition-colors"
             >
               Back to Home
