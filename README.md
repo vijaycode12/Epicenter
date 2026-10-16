@@ -255,28 +255,11 @@ VITE_GOOGLE_CLIENT_ID=<value>
 
 ---
 
-## 🔭 Future Enhancements
 
-- [ ] Mobile app for faster field reporting
-- [ ] Map view of active incidents
-- [ ] Automatic routing to the nearest response team
-- [ ] Video evidence support
-- [ ] Multi-language reporting
-- [ ] Analytics dashboard for response times and trends
 
 ---
 
-## 🎓 Team
 
-**Mini Project** · Department of Information Technology · Anurag University
-
-| Name | Roll No. |
-| :--- | :--- |
-| Balireddi Mathews | 23EG112B06 |
-| Desireddy Vijay Sai Reddy | 23EG112B13 |
-| Surkanti Varun Reddy | 23EG112B57 |
-
-**Guide:** Dr. G Shekar Reddy, Assistant Professor
 
 ---
 
