@@ -284,7 +284,7 @@ function DetailCard({ incident, dark, timeline, showTimeline, setShowTimeline, a
           <dl className="mt-4 space-y-2.5 text-[13.5px]">
             <Row dark={dark} label="Location">{incident.location?.placeName || incident.location?.manualAddress || (incident.location?.latitude ? `${incident.location.latitude.toFixed(4)}, ${incident.location.longitude.toFixed(4)}` : '—')}</Row>
             <Row dark={dark} label="Description">{incident.description || <span className={dark ? 'text-white/30' : 'text-muted/60'}>Not provided</span>}</Row>
-            {isOfficerView && (
+            {dark && (
               <Row dark={dark} label="Contact Phone">
                 {incident.contactPhone ? <a href={`tel:${incident.contactPhone}`} className="underline">{incident.contactPhone}</a> : <span className={dark ? 'text-white/30' : 'text-muted/60'}>Not provided</span>}
               </Row>
