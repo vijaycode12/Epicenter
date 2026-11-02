@@ -183,7 +183,7 @@ export default function ReportIncident({ onNavigate }) {
   const [errors, setErrors] = useState({})
   const [submitted, setSubmitted] = useState(() => Boolean(loadSubmittedState()))
   const [submittedIncidentId, setSubmittedIncidentId] = useState(() => loadSubmittedState()?.submittedIncidentId || '')
-  const [followUpPhone, setFollowUpPhone] = useState('')
+  const [followUpEmail, setFollowUpEmail] = useState('')
   const [followUpSubmitting, setFollowUpSubmitting] = useState(false)
   const [followUpError, setFollowUpError] = useState('')
   const [followUpDone, setFollowUpDone] = useState(false)
@@ -193,6 +193,12 @@ export default function ReportIncident({ onNavigate }) {
   const [statusIndex, setStatusIndex] = useState(0)
   const [latestStatus, setLatestStatus] = useState('Pending')
   const fileInputRef = useRef(null)
+  // camera capture: live preview (getUserMedia) with a native-camera fallback
+  const captureInputRef = useRef(null)
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [cameraError, setCameraError] = useState('')
 
   // auth holds { name, email, avatarUrl, token } once signed in - token
   // is the citizen JWT the backend issued, needed on every authenticated
@@ -428,14 +434,66 @@ export default function ReportIncident({ onNavigate }) {
     }
   }
 
-  const handleAddPhoneLater = async () => {
-    if (!followUpPhone.trim() || !submittedIncidentId) return
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    setCameraOpen(false)
+  }
+
+  const openCamera = async () => {
+    setCameraError('')
+    // no live-camera API (or not a secure page): use the device camera app instead
+    if (!navigator.mediaDevices?.getUserMedia) {
+      captureInputRef.current?.click()
+      return
+    }
+    try {
+      streamRef.current = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      })
+      setCameraOpen(true)
+    } catch {
+      setCameraError('Camera is not available or permission was denied. You can still upload a photo.')
+      captureInputRef.current?.click()
+    }
+  }
+
+  const takePicture = () => {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return
+        handleFile(new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' }))
+        stopCamera()
+      },
+      'image/jpeg',
+      0.9,
+    )
+  }
+
+  // attach the stream once the preview <video> exists; release the camera on unmount
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current
+      videoRef.current.play?.()
+    }
+  }, [cameraOpen])
+  useEffect(() => () => streamRef.current?.getTracks().forEach((t) => t.stop()), [])
+
+  const handleAddEmailLater = async () => {
+    if (!followUpEmail.trim() || !submittedIncidentId) return
     setFollowUpError('')
     setFollowUpSubmitting(true)
     try {
-      await apiRequest(`/incident/${submittedIncidentId}/phone`, {
+      await apiRequest(`/incident/${submittedIncidentId}/email`, {
         method: 'PUT',
-        body: { phone: followUpPhone.trim() },
+        body: { email: followUpEmail.trim() },
       })
       setFollowUpDone(true)
     } catch (err) {
@@ -530,34 +588,31 @@ export default function ReportIncident({ onNavigate }) {
                 </svg>
               </span>
               <p className="text-[13px] text-muted leading-relaxed">
-                {auth && phone && `Updates go to ${auth.email} by email, and by WhatsApp to the number you provided.`}
-                {auth && !phone && `Updates will be sent to ${auth.email} by email.`}
-                {!auth && phone && guestEmail && `Updates will be sent to ${guestEmail} by email, and by WhatsApp to the number you provided.`}
-                {!auth && phone && !guestEmail && 'Updates will be sent by WhatsApp to the number you provided.'}
-                {!auth && !phone && guestEmail && `Updates will be sent to ${guestEmail} by email.`}
-                {!auth && !phone && !guestEmail && 'Sign in with Google to get status updates by email, or add a phone number or email next time for updates.'}
+                {auth && `Updates will be sent to ${auth.email} by email.`}
+                {!auth && guestEmail && `Updates will be sent to ${guestEmail} by email.`}
+                {!auth && !guestEmail && 'Sign in with Google or add your email to get status updates.'}
               </p>
             </div>
 
-            {!auth && !phone && !guestEmail && (
+            {!auth && !guestEmail && (
               <div className="mt-4 rounded-xl border border-border bg-white p-4">
                 {!followUpDone ? (
                   <>
                     <p className="text-[13.5px] font-semibold text-navy">Want live updates on this report?</p>
                     <p className="mt-1 text-[13px] text-muted">
-                      Add a phone number now to get WhatsApp status updates and enable real-time tracking for this report.
+                      Add your email now to get status updates for this report.
                     </p>
                     <div className="mt-3 flex gap-2">
                       <input
-                        type="tel"
-                        value={followUpPhone}
-                        onChange={(e) => setFollowUpPhone(e.target.value)}
-                        placeholder="+91 98765 43210"
+                        type="email"
+                        value={followUpEmail}
+                        onChange={(e) => setFollowUpEmail(e.target.value)}
+                        placeholder="you@example.com"
                         className="flex-1 rounded-lg border border-border py-2.5 px-3.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-brand-red/40 focus:border-brand-red"
                       />
                       <button
-                        onClick={handleAddPhoneLater}
-                        disabled={followUpSubmitting || !followUpPhone.trim()}
+                        onClick={handleAddEmailLater}
+                        disabled={followUpSubmitting || !followUpEmail.trim()}
                         className="rounded-lg bg-navy hover:bg-navy/90 disabled:opacity-50 text-white text-[13.5px] font-semibold px-4 transition-colors"
                       >
                         {followUpSubmitting ? 'Adding…' : 'Add'}
@@ -570,7 +625,7 @@ export default function ReportIncident({ onNavigate }) {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0" aria-hidden="true">
                       <path d="m20 6-11 11-5-5" />
                     </svg>
-                    Phone number added — you'll get WhatsApp updates on this report.
+                    Email added — you'll get status updates on this report.
                   </p>
                 )}
               </div>
@@ -726,7 +781,7 @@ export default function ReportIncident({ onNavigate }) {
             {/* Photo upload */}
             <div className="mt-6">
               <label className="font-bold text-navy text-[15px]">
-                Upload Incident Photo <span className="text-brand-red">*</span>
+                Incident Photo <span className="text-brand-red">*</span>
               </label>
               <div
                 onDragOver={(e) => {
@@ -769,6 +824,39 @@ export default function ReportIncident({ onNavigate }) {
                 )}
                 <p className="mt-2 text-xs text-muted">PNG · JPG · JPEG &nbsp;•&nbsp; Maximum Size 10 MB</p>
               </div>
+              <button
+                type="button"
+                onClick={openCamera}
+                className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-3.5 transition-colors"
+              >
+                <CameraIcon className="w-[18px] h-[18px]" />
+                Take a Photo with Camera
+              </button>
+              <input
+                ref={captureInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  handleFile(e.target.files?.[0])
+                  e.target.value = ''
+                }}
+              />
+              {cameraError && <p className="mt-2 text-sm text-amber-600">{cameraError}</p>}
+              {cameraOpen && (
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 p-4">
+                  <video ref={videoRef} autoPlay playsInline muted className="max-h-[70vh] w-full max-w-xl rounded-xl bg-black" />
+                  <div className="mt-4 flex gap-3">
+                    <button type="button" onClick={takePicture} className="rounded-xl bg-brand-red px-6 py-3 font-bold text-white">
+                      Capture
+                    </button>
+                    <button type="button" onClick={stopCamera} className="rounded-xl bg-white px-6 py-3 font-semibold text-navy">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
               {errors.photo && (
                 <p className="mt-2 text-sm text-brand-red">{errors.photo}</p>
               )}
@@ -833,10 +921,10 @@ export default function ReportIncident({ onNavigate }) {
               />
             </div>
 
-            {/* Phone */}
+            {/* Contact phone - goes to the verification team only */}
             <div className="mt-6">
               <label className="font-bold text-navy text-[15px]">
-                Phone Number <span className="text-muted font-medium">(optional)</span>
+                Contact Phone Number <span className="text-muted font-medium">(optional)</span>
               </label>
               <input
                 type="tel"
@@ -845,7 +933,7 @@ export default function ReportIncident({ onNavigate }) {
                 placeholder="+91 98765 43210"
                 className="mt-3 w-full rounded-xl border border-border py-3.5 px-4 text-[15px] focus:outline-none focus:ring-2 focus:ring-brand-red/40 focus:border-brand-red"
               />
-              <p className="mt-2 text-sm text-muted">Get WhatsApp updates on this number.{!auth && ' Or add your email below for updates that way instead.'}</p>
+              <p className="mt-2 text-sm text-muted">Shared only with the verification team so they can contact you about this report. No messages are sent to this number.</p>
             </div>
 
             {/* Guest email - only relevant for guests, since signed-in

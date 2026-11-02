@@ -8,13 +8,15 @@ const incidentSchema = new mongoose.Schema({
         ref:'User',
         default:null,
     },
-    phone:[{
+    // Optional contact number for the verification team only.
+    // Never used for notifications and hidden from public API responses.
+    contactPhone:{
         type:String,
         trim:true,
-    }],
+    },
     email:[{
         type:String,
-        triem:true,
+        trim:true,
         lowercase:true,
     }],
     duplicateReportCount:{

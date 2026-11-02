@@ -90,7 +90,6 @@ export const googleLogin = async(req,res,next)=>{
                 name:user.name,
                 email:user.email,
                 avatarUrl:user.avatarUrl,
-                phone:user.phone,
             },
         })
     }catch(error){
@@ -119,42 +118,9 @@ export const getMyProfile = async(req,res,next)=>{
                 name:user.name,
                 email:user.email,
                 avatarUrl:user.avatarUrl,
-                phone:user.phone,
             },
         })
     }catch(error){
-        next(error);
-    }
-};
-
-export const updateNotificationSettings = async (req, res, next) => {
-    try {
-        if (!req.auth || req.auth.role !== "citizen") {
-            return fail(res, 403, "Not authorized - citizen access only");
-        }
-
-        const { phone } = req.body;
-
-        const user = await User.findById(req.auth.id);
-        if (!user) {
-            return fail(res, 401, "User no longer exists");
-        }
-
-        if (phone !== undefined) {
-            user.phone = phone ? phone.replace(/[^\d]/g, "") : undefined;
-        }
-
-        await user.save();
-
-        return success(res, 200, "Notification settings updated", {
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
-            },
-        });
-    } catch (error) {
         next(error);
     }
 };

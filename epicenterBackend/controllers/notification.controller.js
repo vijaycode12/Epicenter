@@ -3,15 +3,15 @@ import { success, fail } from "../utils/response.js";
 
 export const getNotification = async (req, res, next) => {
   try {
-    const { phone:rawPhone } = req.query;
+    const { email: rawEmail } = req.query;
 
-    if (!rawPhone) {
-      return fail(res, 400, "Phone number is required");
+    if (!rawEmail) {
+      return fail(res, 400, "Email is required");
     }
 
-    const phone = rawPhone.replace(/[^\d]/g, "");
-    
-    const notifications = await Notification.find({ phone })
+    const email = rawEmail.trim().toLowerCase();
+
+    const notifications = await Notification.find({ email })
       .sort({ createdAt: -1 })
       .populate("incident", "incidentType status");
 

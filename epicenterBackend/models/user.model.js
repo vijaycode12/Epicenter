@@ -11,10 +11,6 @@ const userSchema = new mongoose.Schema({
         trim:true,
         sparse:true,
     },
-    phone:{
-        type:String,
-        trim:true,
-    },
     googleId:{
         type:String,
         unique:true,

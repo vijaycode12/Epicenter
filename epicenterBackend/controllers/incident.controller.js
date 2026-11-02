@@ -6,10 +6,18 @@ import { analyzeImage,analyzeText,combineSignals } from '../services/ai.service.
 import {success,fail} from '../utils/response.js';
 import * as logger from '../utils/logger.js';
 
+// Contact phone is for officers only - strip it from anything a citizen/guest can fetch.
+const hidePhone = (incident) => {
+    if(!incident) return incident;
+    const obj = typeof incident.toObject === "function" ? incident.toObject() : {...incident};
+    delete obj.contactPhone;
+    return obj;
+};
+
 export const createIncident = async(req,res,next)=>{
     try{
-        const {incidentType,description,latitude,longitude,manualAddress,phone:rawPhone,email:rawEmail} = req.body;
-        const phone = rawPhone ? rawPhone.replace(/[^\d]/g, "") : rawPhone;
+        const {incidentType,description,latitude,longitude,manualAddress,email:rawEmail,phone:rawPhone} = req.body;
+        const contactPhone = rawPhone ? String(rawPhone).replace(/[^\d+]/g, "").slice(0,15) : undefined;
 
         const email = rawEmail ? rawEmail.trim().toLowerCase() : rawEmail;
 
@@ -29,10 +37,10 @@ export const createIncident = async(req,res,next)=>{
 
         if(req.auth?.role === "citizen"){
             reportedBy=req.auth.id;
-        }else if(phone){
-            let user = await User.findOne({phone});
+        }else if(email){
+            let user = await User.findOne({email});
             if(!user){
-                user = await User.create({phone,isGuest:true});
+                user = await User.create({email,isGuest:true});
             }
             reportedBy = user._id;
         }
@@ -41,14 +49,19 @@ export const createIncident = async(req,res,next)=>{
             const duplicate = await findNearbyDuplicate(incidentType, location.latitude, location.longitude);
 
             if (duplicate) {
-                if (phone && Array.isArray(duplicate.phone) &&  !duplicate.phone.includes(phone)) {
-                    duplicate.phone.push(phone);
+                if (email && Array.isArray(duplicate.email) && !duplicate.email.includes(email)) {
+                    duplicate.email.push(email);
                     duplicate.duplicateReportCount += 1;
                     await duplicate.save();
                 }
 
-                return success(res, 200, "This incident has already been reported and is being handled. Keep your phone number for updates.", {
-                    incident: duplicate,
+                if (contactPhone && !duplicate.contactPhone) {
+                    duplicate.contactPhone = contactPhone;
+                    await duplicate.save();
+                }
+
+                return success(res, 200, "This incident has already been reported and is being handled. Add your email to receive updates.", {
+                    incident: hidePhone(duplicate),
                     isDuplicate: true,
                 });
             }
@@ -56,8 +69,8 @@ export const createIncident = async(req,res,next)=>{
 
         const incident = await Incident.create({
             reportedBy,
-            phone:phone ? [phone] : [],
             email: email ? [email] : [],
+            contactPhone: contactPhone || undefined,
             incidentType,
             description:description?.trim()||undefined,
             imageUrl,
@@ -69,7 +82,7 @@ export const createIncident = async(req,res,next)=>{
             await User.findByIdAndUpdate(reportedBy,{$push:{reports:incident._id}});
         }
 
-        success(res,201,"Incident reported successfully",{incident});
+        success(res,201,"Incident reported successfully",{incident:hidePhone(incident)});
 
         if(location.latitude && location.longitude){
             reverseGeocode(location.latitude,location.longitude)
@@ -119,15 +132,15 @@ export const createIncident = async(req,res,next)=>{
 
 export const track = async(req,res,next)=>{
     try{
-        const {phone:rawPhone} = req.query;
+        const {email:rawEmail} = req.query;
 
-        if(!rawPhone){
-            return fail(res,400,"Phone number is required");
+        if(!rawEmail){
+            return fail(res,400,"Email is required");
         }
-        const phone = rawPhone.replace(/[^\d]/g, "");
-        
-        const incidents = await Incident.find({phone}).sort({createdAt:-1});
-        return success(res,200,"Reports found",{incidents});
+        const email = rawEmail.trim().toLowerCase();
+
+        const incidents = await Incident.find({email}).sort({createdAt:-1});
+        return success(res,200,"Reports found",{incidents:incidents.map(hidePhone)});
     }catch(error){
         next(error);
     }
@@ -152,48 +165,8 @@ export const getIncidentById = async(req,res,next)=>{
         if(!incident){
             return fail(res,404,"Incident not found");
         }
-        return success(res,200,"incident found",{incident});
+        return success(res,200,"incident found",{incident: req.auth?.role === "officer" ? incident : hidePhone(incident)});
     }catch(error){
-        next(error);
-    }
-};
-
-export const addPhoneToIncident = async (req, res, next) => {
-    try {
-        const { phone } = req.body;
-
-        if (!phone || !phone.trim()) {
-            return fail(res, 400, "Phone number is required");
-        }
-
-        const incident = await Incident.findById(req.params.id);
-
-        if (!incident) {
-            return fail(res, 404, "Incident not found");
-        }
-
-        const normalizedPhone = phone.replace(/[^\d]/g, "");
-
-        if (!Array.isArray(incident.phone)) {
-            incident.phone = incident.phone ? [incident.phone] : [];
-        }
-
-        if (!incident.phone.includes(normalizedPhone)) {
-            incident.phone.push(normalizedPhone);
-        }
-
-        let user = await User.findOne({ phone: normalizedPhone });
-        if (!user) {
-            user = await User.create({ phone: normalizedPhone, isGuest: true });
-        }
-        if (!incident.reportedBy) {
-            incident.reportedBy = user._id;
-        }
-
-        await incident.save();
-
-        return success(res, 200, "Phone number added", { incident });
-    } catch (error) {
         next(error);
     }
 };

@@ -7,9 +7,10 @@ const notificationSchema = new mongoose.Schema({
         ref:'User',
         default:null,
     },
-    phone:[{
+    email:[{
         type:String,
         trim:true,
+        lowercase:true,
     }],
     incident:{
         type:mongoose.Schema.Types.ObjectId,
