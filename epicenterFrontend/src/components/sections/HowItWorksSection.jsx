@@ -65,7 +65,7 @@ const STEPS = [
     color: '#ef4444',
     title: 'Notify & update',
     description: 'Users and authorities receive real-time status updates.',
-    detail: 'Signed-in users get email updates by default; a phone number adds live WhatsApp status alerts too.',
+    detail: 'Signed-in users get email updates by default; guests can add an email to get status alerts too.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />

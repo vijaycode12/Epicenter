@@ -4,7 +4,6 @@ import { apiRequest } from '../lib/api.js'
 import { getOfficerToken, getOfficerProfile, clearOfficerToken } from '../lib/officerAuth.js'
 import { getResponderOptions } from '../lib/responderSuggestions.js'
 import { buildIncidentTimeline } from '../lib/incidentTimeline.js'
-import { formatPhone } from '../lib/formatPhone.js'
 
 const STATUS_STYLES = {
   Pending: 'bg-gray-500/10 text-gray-300 border-gray-500/20',
@@ -25,8 +24,8 @@ const NEEDS_ACTION = ['Pending', 'AI Verified', 'Waiting for Verification']
 const PREVIOUS_FILTERS = ['All', 'Cleared', 'Rejected']
 const PAGE_SIZE = 3
 
-function getPhones(phone) {
-  const arr = Array.isArray(phone) ? phone : phone ? [phone] : []
+function getEmails(email) {
+  const arr = Array.isArray(email) ? email : email ? [email] : []
   return arr.filter(Boolean)
 }
 
@@ -337,10 +336,13 @@ export default function VerificationDashboard({ onNavigate }) {
                       <dl className="mt-4 space-y-2.5 text-[13.5px]">
                         <Row label="Location">{latest.location?.placeName || latest.location?.manualAddress || (latest.location?.latitude ? `${latest.location.latitude.toFixed(4)}, ${latest.location.longitude.toFixed(4)}` : '—')}</Row>
                         <Row label="Description">{latest.description || <span className="text-white/30">Not provided</span>}</Row>
-                        <Row label="Phone">
+                        <Row label="Contact Phone">
+                          {latest.contactPhone ? <a href={`tel:${latest.contactPhone}`} className="underline">{latest.contactPhone}</a> : <span className="text-white/30">Not provided</span>}
+                        </Row>
+                        <Row label="Email">
                           {(() => {
-                            const phones = getPhones(latest.phone)
-                            return phones.length ? phones.map(formatPhone).join(', ') : <span className="text-white/30">None</span>
+                            const emails = getEmails(latest.email)
+                            return emails.length ? emails.join(', ') : <span className="text-white/30">None</span>
                           })()}
                         </Row>
                       </dl>

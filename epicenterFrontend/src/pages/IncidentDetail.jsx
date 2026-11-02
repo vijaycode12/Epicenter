@@ -6,7 +6,6 @@ import { getOfficerToken, getOfficerProfile, clearOfficerToken } from '../lib/of
 import { getCitizenAuth } from '../lib/citizenAuth.js'
 import { getResponderOptions } from '../lib/responderSuggestions.js'
 import { buildIncidentTimeline } from '../lib/incidentTimeline.js'
-import { formatPhone } from '../lib/formatPhone.js'
 
 const STATUS_STYLES = {
   Pending: 'bg-gray-500/10 text-gray-300 border-gray-500/20',
@@ -25,8 +24,8 @@ const SEVERITY_STYLES = {
 }
 const NEEDS_ACTION = ['Pending', 'AI Verified', 'Waiting for Verification']
 
-function getPhones(phone) {
-  const arr = Array.isArray(phone) ? phone : phone ? [phone] : []
+function getEmails(email) {
+  const arr = Array.isArray(email) ? email : email ? [email] : []
   return arr.filter(Boolean)
 }
 
@@ -285,10 +284,15 @@ function DetailCard({ incident, dark, timeline, showTimeline, setShowTimeline, a
           <dl className="mt-4 space-y-2.5 text-[13.5px]">
             <Row dark={dark} label="Location">{incident.location?.placeName || incident.location?.manualAddress || (incident.location?.latitude ? `${incident.location.latitude.toFixed(4)}, ${incident.location.longitude.toFixed(4)}` : '—')}</Row>
             <Row dark={dark} label="Description">{incident.description || <span className={dark ? 'text-white/30' : 'text-muted/60'}>Not provided</span>}</Row>
-            <Row dark={dark} label="Phone">
+            {isOfficerView && (
+              <Row dark={dark} label="Contact Phone">
+                {incident.contactPhone ? <a href={`tel:${incident.contactPhone}`} className="underline">{incident.contactPhone}</a> : <span className={dark ? 'text-white/30' : 'text-muted/60'}>Not provided</span>}
+              </Row>
+            )}
+            <Row dark={dark} label="Email">
               {(() => {
-                const phones = getPhones(incident.phone)
-                return phones.length ? phones.map(formatPhone).join(', ') : <span className={dark ? 'text-white/30' : 'text-muted/60'}>None</span>
+                const emails = getEmails(incident.email)
+                return emails.length ? emails.join(', ') : <span className={dark ? 'text-white/30' : 'text-muted/60'}>None</span>
               })()}
             </Row>
           </dl>

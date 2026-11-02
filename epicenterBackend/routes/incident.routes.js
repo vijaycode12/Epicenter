@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import {createIncident,track,getMyReports,getIncidentById,addPhoneToIncident,addEmailToIncident} from '../controllers/incident.controller.js';
+import {createIncident,track,getMyReports,getIncidentById,addEmailToIncident} from '../controllers/incident.controller.js';
 import uploadIncidentImage from '../middlewares/upload.middleware.js';
 import {protect,optionalAuth} from '../middlewares/auth.middleware.js';
 import {validateIncidentReport} from '../middlewares/validation.middleware.js';
@@ -16,9 +16,7 @@ incidentRouter.get("/track",track);
 //Only for logged ones
 incidentRouter.get("/my-reports",protect,getMyReports);
 
-incidentRouter.get("/:id",getIncidentById);
-
-incidentRouter.put("/:id/phone",addPhoneToIncident);
+incidentRouter.get("/:id",optionalAuth,getIncidentById);
 
 incidentRouter.put("/:id/email", addEmailToIncident);
 

@@ -35,7 +35,6 @@ export const verifyIncident = async(req,res,next)=>{
 
         await notify({
             userId:incident.reportedBy,
-            phone:incident.phone,
             email:incident.email,
             incidentId:incident._id,
             type:"VERIFICATION_RESULT",
@@ -68,7 +67,6 @@ export const rejectIncident = async(req,res,next)=>{
 
         await notify({
             userId:incident.reportedBy,
-            phone:incident.phone,
             email:incident.email,
             incidentId:incident._id,
             type:"VERIFICATION_RESULT",
@@ -101,7 +99,6 @@ export const assignIncident = async (req, res, next) => {
 
     await notify({
       userId: incident.reportedBy,
-      phone: incident.phone,
       email:incident.email,
       incidentId: incident._id,
       type: "ASSIGNMENT",
@@ -128,7 +125,6 @@ export const resolveIncident = async (req, res, next) => {
 
     await notify({
       userId: incident.reportedBy,
-      phone: incident.phone,
       email:incident.email,
       incidentId: incident._id,
       type: "STATUS_UPDATE",
