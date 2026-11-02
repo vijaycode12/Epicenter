@@ -50,7 +50,7 @@ When a disaster strikes, the gap between someone noticing it and the right autho
 | 🧭 | **Officer Command Center** | The most urgent incident first, with verify, reject, assign, and resolve actions. |
 | 📡 | **Live status tracking** | Reported → AI Checked → Verified → Team Assigned, updating automatically. |
 | 🧩 | **Duplicate merging** | Same incident type at the same location becomes one record. |
-| 🔔 | **Notifications** | Status updates by email and WhatsApp. |
+| 🔔 | **Notifications** | Status updates by email. |
 | 🛡️ | **Abuse protection** | Rate limiting on public routes. |
 
 **Supported incident categories:** Fire · Flooding · Building Collapse · Gas / Chemical Leak · Road or Bridge Damage · People Trapped or Injured · Electrical Hazard · Fallen Tree or Pole
@@ -68,7 +68,6 @@ flowchart LR
     B --> CL[☁️ Cloudinary<br/>photos]
     B --> NM[📍 Nominatim<br/>geocoding]
     B --> EM[✉️ Gmail / Nodemailer]
-    B --> TW[💬 Twilio WhatsApp]
     B --> D[🖥️ Verification Dashboard]
     D --> E([🚒 Emergency Authority])
 ```
@@ -87,7 +86,7 @@ The **backend is the hub**. The frontend talks only to the backend, and only the
 <tr><td><b>Image detection</b></td><td>YOLOv8 (Ultralytics), custom-trained on disaster categories</td></tr>
 <tr><td><b>Text classification</b></td><td>DistilBERT zero-shot NLI (<code>typeform/distilbert-base-uncased-mnli</code>)</td></tr>
 <tr><td><b>Auth</b></td><td>JWT · bcrypt · Google OAuth</td></tr>
-<tr><td><b>Integrations</b></td><td>Cloudinary · Nominatim · Nodemailer (Gmail) · Twilio (WhatsApp) · Arcjet</td></tr>
+<tr><td><b>Integrations</b></td><td>Cloudinary · Nominatim · Nodemailer (Gmail)  · Arcjet</td></tr>
 </table>
 
 ---
@@ -131,7 +130,7 @@ stateDiagram-v2
 
 | Role | Access | What they do |
 | :--- | :--- | :--- |
-| **Citizen** | Guest, or Google sign-in | Report incidents, track status, view "My Reports" (when signed in), receive email or WhatsApp updates. |
+| **Citizen** | Guest, or Google sign-in | Report incidents, track status, view "My Reports" (when signed in), receive email updates. |
 | **Verification Officer** | Employee ID + password (accounts created directly in the database, no public signup) | Review AI findings, verify or reject, assign teams, resolve incidents. |
 
 ---
@@ -156,7 +155,7 @@ epicenter/
 - Node.js (LTS) and npm
 - Python 3.10+ and pip
 - A MongoDB Atlas cluster (or local MongoDB)
-- Keys for Cloudinary, Twilio (WhatsApp), Google OAuth, and a Gmail app password
+- Keys for Cloudinary, Google OAuth, and a Gmail app password
 
 ### Run locally
 
@@ -225,9 +224,6 @@ GOOGLE_CLIENT_ID=<value>
 EMAIL_USER=<gmail address>
 EMAIL_PASS=<gmail app password>
 
-TWILIO_ACCOUNT_SID=<value>
-TWILIO_AUTH_TOKEN=<value>
-TWILIO_WHATSAPP_FROM=<value>
 
 ARCJET_KEY=<value>
 ```
